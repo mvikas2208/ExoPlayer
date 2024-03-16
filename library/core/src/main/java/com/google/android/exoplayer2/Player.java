@@ -22,6 +22,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.TextureView;
+import androidx.annotation.IntDef;
 import com.google.android.exoplayer2.C.VideoScalingMode;
 import com.google.android.exoplayer2.audio.AudioAttributes;
 import com.google.android.exoplayer2.audio.AudioListener;
@@ -442,7 +443,14 @@ public interface Player {
       // Do nothing.
     }
   }
-
+  /**
+   * Playback state. One of {@link #STATE_IDLE}, {@link #STATE_BUFFERING}, {@link #STATE_READY} or
+   * {@link #STATE_ENDED}.
+   */
+  @Documented
+  @Retention(RetentionPolicy.SOURCE)
+  @IntDef({STATE_IDLE, STATE_BUFFERING, STATE_READY, STATE_ENDED})
+  @interface State {}
   /**
    * The player does not have any media to play.
    */
@@ -461,6 +469,18 @@ public interface Player {
    * The player has finished playing the media.
    */
   int STATE_ENDED = 4;
+
+  @Documented
+  @Retention(RetentionPolicy.SOURCE)
+  @IntDef({
+      PLAYBACK_SUPPRESSION_REASON_NONE,
+      PLAYBACK_SUPPRESSION_REASON_TRANSIENT_AUDIO_FOCUS_LOSS
+  })
+  @interface PlaybackSuppressionReason {}
+  /** Playback is not suppressed. */
+  int PLAYBACK_SUPPRESSION_REASON_NONE = 0;
+  /** Playback is suppressed due to transient audio focus loss. */
+  int PLAYBACK_SUPPRESSION_REASON_TRANSIENT_AUDIO_FOCUS_LOSS = 1;
 
   /**
    * Repeat modes for playback. One of {@link #REPEAT_MODE_OFF}, {@link #REPEAT_MODE_ONE} or {@link
