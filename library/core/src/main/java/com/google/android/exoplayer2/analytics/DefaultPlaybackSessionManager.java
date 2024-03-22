@@ -329,8 +329,7 @@ public final class DefaultPlaybackSessionManager implements PlaybackSessionManag
                 && eventAdIndex > adMediaPeriodId.adIndexInAdGroup);
       } else {
         // Finished if the event is for content after this ad.
-        return eventTime.mediaPeriodId.nextAdGroupIndex == C.INDEX_UNSET
-            || eventTime.mediaPeriodId.nextAdGroupIndex > adMediaPeriodId.adGroupIndex;
+        return false;
       }
     }
 

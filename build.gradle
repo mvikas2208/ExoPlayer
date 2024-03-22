@@ -17,7 +17,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.4'
+        classpath 'com.android.tools.build:gradle:3.5.4'
         classpath 'com.novoda:bintray-release:0.8.1'
         classpath 'com.google.android.gms:strict-version-matcher-plugin:1.0.3'
     }
@@ -44,6 +44,11 @@ allprojects {
         }
         buildDir = "${externalBuildDir}/${project.name}"
     }
+}
+
+def rootDir = file(".")
+if (!gradle.ext.has('exoplayerSettingsDir')) {
+    gradle.ext.exoplayerSettingsDir = rootDir.getCanonicalPath()
 }
 
 apply from: 'javadoc_combined.gradle'

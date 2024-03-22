@@ -28,9 +28,9 @@ import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Looper;
-import android.support.annotation.IntDef;
-import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
+import androidx.annotation.IntDef;
+import androidx.annotation.Nullable;;
+//import androidx.core.content.ContextCompat;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -43,14 +43,17 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
+import androidx.core.content.ContextCompat;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ControlDispatcher;
 import com.google.android.exoplayer2.DefaultControlDispatcher;
 import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.PlaybackPreparer;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.Player.DiscontinuityReason;
 import com.google.android.exoplayer2.Player.VideoComponent;
+import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.metadata.Metadata;
 import com.google.android.exoplayer2.metadata.id3.ApicFrame;
 import com.google.android.exoplayer2.source.TrackGroupArray;
@@ -1373,6 +1376,9 @@ public class PlayerView extends FrameLayout implements AdsLoader.AdViewProvider 
     }
 
     // VideoListener implementation
+    @Override
+    public void onSurfaceSizeChanged(int width, int height) {}
+
 
     @Override
     public void onVideoSizeChanged(
@@ -1414,6 +1420,13 @@ public class PlayerView extends FrameLayout implements AdsLoader.AdViewProvider 
       updateForCurrentTrackSelections(/* isNewPlayer= */ false);
     }
 
+    @Override
+    public void onTimelineChanged(
+        Timeline timeline, @Nullable Object manifest, @Player.TimelineChangeReason int reason) {}
+
+    @Override
+    public void onLoadingChanged(boolean isLoading) {}
+
     // Player.EventListener implementation
 
     @Override
@@ -1426,6 +1439,23 @@ public class PlayerView extends FrameLayout implements AdsLoader.AdViewProvider 
         maybeShowController(false);
       }
     }
+
+    @Override
+    public void onPlayerError(ExoPlaybackException error) {}
+
+    @Override
+    public void onRepeatModeChanged(@Player.RepeatMode int repeatMode) {}
+
+    @Override
+    public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {}
+
+    @Override
+    public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {}
+
+
+    @Override
+    public void onSeekProcessed() {}
+
 
     @Override
     public void onPositionDiscontinuity(@DiscontinuityReason int reason) {

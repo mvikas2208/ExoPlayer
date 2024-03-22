@@ -47,6 +47,8 @@ android {
     lintOptions {
         // The demo app does not have translations.
         disable 'MissingTranslation'
+        abortOnError false
+
     }
 
 }

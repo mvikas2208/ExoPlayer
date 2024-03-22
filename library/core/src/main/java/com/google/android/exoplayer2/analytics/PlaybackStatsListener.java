@@ -17,6 +17,7 @@ package com.google.android.exoplayer2.analytics;
 
 import android.os.SystemClock;
 import android.util.Pair;
+import android.view.Surface;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
@@ -26,7 +27,11 @@ import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.Timeline.Period;
 import com.google.android.exoplayer2.analytics.PlaybackStats.PlaybackState;
+import com.google.android.exoplayer2.audio.AudioAttributes;
+import com.google.android.exoplayer2.decoder.DecoderCounters;
+import com.google.android.exoplayer2.metadata.Metadata;
 import com.google.android.exoplayer2.source.MediaSource.MediaPeriodId;
+import com.google.android.exoplayer2.source.MediaSourceEventListener;
 import com.google.android.exoplayer2.source.MediaSourceEventListener.LoadEventInfo;
 import com.google.android.exoplayer2.source.MediaSourceEventListener.MediaLoadData;
 import com.google.android.exoplayer2.source.TrackGroupArray;
@@ -335,6 +340,21 @@ public final class PlaybackStatsListener
   }
 
   @Override
+  public void onRepeatModeChanged(EventTime eventTime, int repeatMode) {
+
+  }
+
+  @Override
+  public void onShuffleModeChanged(EventTime eventTime, boolean shuffleModeEnabled) {
+
+  }
+
+  @Override
+  public void onLoadingChanged(EventTime eventTime, boolean isLoading) {
+
+  }
+
+  @Override
   public void onLoadStarted(
       EventTime eventTime, LoadEventInfo loadEventInfo, MediaLoadData mediaLoadData) {
     sessionManager.updateSessions(eventTime);
@@ -382,6 +402,26 @@ public final class PlaybackStatsListener
   }
 
   @Override
+  public void onUpstreamDiscarded(EventTime eventTime, MediaSourceEventListener.MediaLoadData mediaLoadData) {
+
+  }
+
+  @Override
+  public void onMediaPeriodCreated(EventTime eventTime) {
+
+  }
+
+  @Override
+  public void onMediaPeriodReleased(EventTime eventTime) {
+
+  }
+
+  @Override
+  public void onReadingStarted(EventTime eventTime) {
+
+  }
+
+  @Override
   public void onAudioUnderrun(
       EventTime eventTime, int bufferSize, long bufferSizeMs, long elapsedSinceLastFeedMs) {
     sessionManager.updateSessions(eventTime);
@@ -415,6 +455,87 @@ public final class PlaybackStatsListener
         playbackStatsTrackers.get(session).onNonFatalError(eventTime, error);
       }
     }
+  }
+
+  @Override
+  public void onLoadCompleted(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo, MediaSourceEventListener.MediaLoadData mediaLoadData) {
+  }
+
+  @Override
+  public void onLoadCanceled(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo, MediaSourceEventListener.MediaLoadData mediaLoadData) {
+  }
+
+  @Override
+  public void onSurfaceSizeChanged(EventTime eventTime, int width, int height) {
+
+  }
+
+  @Override
+  public void onMetadata(EventTime eventTime, Metadata metadata) {
+
+  }
+
+  @Override
+  public void onDecoderEnabled(EventTime eventTime, int trackType, DecoderCounters decoderCounters) {
+
+  }
+
+  @Override
+  public void onDecoderInitialized(EventTime eventTime, int trackType, String decoderName, long initializationDurationMs) {
+  }
+
+  @Override
+  public void onDecoderInputFormatChanged(EventTime eventTime, int trackType, Format format) {
+  }
+
+  @Override
+  public void onDecoderDisabled(EventTime eventTime, int trackType, DecoderCounters decoderCounters) {
+
+  }
+
+  @Override
+  public void onAudioSessionId(EventTime eventTime, int audioSessionId) {
+
+  }
+
+  @Override
+  public void onAudioAttributesChanged(EventTime eventTime, AudioAttributes audioAttributes) {
+
+  }
+
+  @Override
+  public void onVolumeChanged(EventTime eventTime, float volume) {
+
+  }
+
+  @Override
+  public void onRenderedFirstFrame(EventTime eventTime, @Nullable Surface surface) {
+
+  }
+
+  @Override
+  public void onDrmSessionAcquired(EventTime eventTime) {
+
+  }
+
+  @Override
+  public void onDrmKeysLoaded(EventTime eventTime) {
+
+  }
+
+  @Override
+  public void onDrmKeysRestored(EventTime eventTime) {
+
+  }
+
+  @Override
+  public void onDrmKeysRemoved(EventTime eventTime) {
+
+  }
+
+  @Override
+  public void onDrmSessionReleased(EventTime eventTime) {
+
   }
 
   @Override

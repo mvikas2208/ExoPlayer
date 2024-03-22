@@ -15,7 +15,7 @@
  */
 package com.google.android.exoplayer2.analytics;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;;
 import android.view.Surface;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
@@ -284,6 +284,14 @@ public interface AnalyticsListener {
    */
   default void onMediaPeriodCreated(EventTime eventTime) {}
 
+  /**
+   * Called when playback suppression reason changed.
+   *
+   * @param eventTime The event time.
+   * @param playbackSuppressionReason
+   */
+  default void onPlaybackSuppressionReasonChanged(
+      EventTime eventTime, @Player.PlaybackSuppressionReason int playbackSuppressionReason) {}
   /**
    * Called when a media source released a media period.
    *
