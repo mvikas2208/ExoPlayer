@@ -59,7 +59,6 @@ import java.util.Collections;
   // External messages
   public static final int MSG_PLAYBACK_INFO_CHANGED = 0;
   public static final int MSG_PLAYBACK_PARAMETERS_CHANGED = 1;
-  public static final int MSG_ERROR = 2;
 
   // Internal messages
   private static final int MSG_PREPARE = 0;
@@ -343,18 +342,18 @@ import java.util.Collections;
     } catch (ExoPlaybackException e) {
       Log.e(TAG, "Playback error.", e);
       stopInternal(/* reset= */ false, /* acknowledgeStop= */ false);
-      eventHandler.obtainMessage(MSG_ERROR, e).sendToTarget();
+      playbackInfo = playbackInfo.copyWithPlaybackError(e);
       maybeNotifyPlaybackInfoChanged();
     } catch (IOException e) {
       Log.e(TAG, "Source error.", e);
       stopInternal(/* reset= */ false, /* acknowledgeStop= */ false);
-      eventHandler.obtainMessage(MSG_ERROR, ExoPlaybackException.createForSource(e)).sendToTarget();
+      playbackInfo = playbackInfo.copyWithPlaybackError(ExoPlaybackException.createForSource(e));
       maybeNotifyPlaybackInfoChanged();
     } catch (RuntimeException e) {
       Log.e(TAG, "Internal runtime error.", e);
       stopInternal(/* reset= */ false, /* acknowledgeStop= */ false);
-      eventHandler.obtainMessage(MSG_ERROR, ExoPlaybackException.createForUnexpected(e))
-          .sendToTarget();
+      ExoPlaybackException error = ExoPlaybackException.createForUnexpected((RuntimeException) e);
+      playbackInfo = playbackInfo.copyWithPlaybackError(error);
       maybeNotifyPlaybackInfoChanged();
     }
     return true;
@@ -391,7 +390,7 @@ import java.util.Collections;
 
   private void prepareInternal(MediaSource mediaSource, boolean resetPosition, boolean resetState) {
     pendingPrepareCount++;
-    resetInternal(/* releaseMediaSource= */ true, resetPosition, resetState);
+    resetInternal(/* releaseMediaSource= */ true, resetPosition, resetState, /* resetError= */ true);
     loadControl.onPrepared();
     this.mediaSource = mediaSource;
     setState(Player.STATE_BUFFERING);
@@ -624,7 +623,7 @@ import java.util.Collections;
         // End playback, as we didn't manage to find a valid seek position.
         setState(Player.STATE_ENDED);
         resetInternal(
-            /* releaseMediaSource= */ false, /* resetPosition= */ true, /* resetState= */ false);
+            /* releaseMediaSource= */ false, /* resetPosition= */ true, /* resetState= */ false, /* resetError= */ true);
       } else {
         // Execute the seek in the current media periods.
         long newPeriodPositionUs = periodPositionUs;
@@ -733,7 +732,7 @@ import java.util.Collections;
 
   private void stopInternal(boolean reset, boolean acknowledgeStop) {
     resetInternal(
-        /* releaseMediaSource= */ true, /* resetPosition= */ reset, /* resetState= */ reset);
+        /* releaseMediaSource= */ true, /* resetPosition= */ reset, /* resetState= */ reset, /* resetError= */ reset);
     playbackInfoUpdate.incrementPendingOperationAcks(
         pendingPrepareCount + (acknowledgeStop ? 1 : 0));
     pendingPrepareCount = 0;
@@ -743,7 +742,7 @@ import java.util.Collections;
 
   private void releaseInternal() {
     resetInternal(
-        /* releaseMediaSource= */ true, /* resetPosition= */ true, /* resetState= */ true);
+        /* releaseMediaSource= */ true, /* resetPosition= */ true, /* resetState= */ true, /* resetError= */ false);
     loadControl.onReleased();
     setState(Player.STATE_IDLE);
     internalPlaybackThread.quit();
@@ -754,7 +753,7 @@ import java.util.Collections;
   }
 
   private void resetInternal(
-      boolean releaseMediaSource, boolean resetPosition, boolean resetState) {
+      boolean releaseMediaSource, boolean resetPosition, boolean resetState, boolean resetError) {
     handler.removeMessages(MSG_DO_SOME_WORK);
     rebuffering = false;
     mediaClock.stop();
@@ -796,6 +795,7 @@ import java.util.Collections;
             startPositionUs,
             contentPositionUs,
             playbackInfo.playbackState,
+            resetError ? null : playbackInfo.playbackError,
             /* isLoading= */ false,
             resetState ? TrackGroupArray.EMPTY : playbackInfo.trackGroups,
             resetState ? emptyTrackSelectorResult : playbackInfo.trackSelectorResult,
@@ -1281,7 +1281,7 @@ import java.util.Collections;
     setState(Player.STATE_ENDED);
     // Reset, but retain the source so that it can still be used should a seek occur.
     resetInternal(
-        /* releaseMediaSource= */ false, /* resetPosition= */ true, /* resetState= */ false);
+        /* releaseMediaSource= */ false, /* resetPosition= */ true, /* resetState= */ false, /* resetError= */ true);
   }
 
   /**
