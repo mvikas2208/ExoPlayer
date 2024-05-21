@@ -160,6 +160,16 @@ public abstract class StubExoPlayer extends BasePlayer implements ExoPlayer {
   }
 
   @Override
+  public void setDetachSurfaceTimeoutMs(long detachSurfaceTimeoutMs) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public long getDetachSurfaceTimeoutMs() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public void stop(boolean resetStateAndPosition) {
     throw new UnsupportedOperationException();
   }

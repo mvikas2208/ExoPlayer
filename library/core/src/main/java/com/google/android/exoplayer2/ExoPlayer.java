@@ -252,4 +252,6 @@ public interface ExoPlayer extends Player {
 
   /** Returns the currently active {@link SeekParameters} of the player. */
   SeekParameters getSeekParameters();
+  void setDetachSurfaceTimeoutMs(long detachSurfaceTimeoutMs);
+  long getDetachSurfaceTimeoutMs();
 }

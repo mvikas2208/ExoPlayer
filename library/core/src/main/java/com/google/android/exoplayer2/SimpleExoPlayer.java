@@ -58,6 +58,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.TimeoutException;
 
 /**
  * An {@link ExoPlayer} implementation that uses default {@link Renderer} components. Instances can
@@ -70,6 +71,10 @@ public class SimpleExoPlayer extends BasePlayer
         Player.VideoComponent,
         Player.TextComponent,
         Player.MetadataComponent {
+
+  /** The default timeout for detaching a surface from the player, in milliseconds. */
+  public static final long DEFAULT_DETACH_SURFACE_TIMEOUT_MS = 2_000;
+
 
   /** @deprecated Use {@link com.google.android.exoplayer2.video.VideoListener}. */
   @Deprecated
@@ -960,6 +965,18 @@ public class SimpleExoPlayer extends BasePlayer
   }
 
   @Override
+  public void setDetachSurfaceTimeoutMs(long detachSurfaceTimeoutMs) {
+    verifyApplicationThread();
+    player.setDetachSurfaceTimeoutMs(detachSurfaceTimeoutMs);
+  }
+
+  @Override
+  public long getDetachSurfaceTimeoutMs(){
+    verifyApplicationThread();
+    return player.getDetachSurfaceTimeoutMs();
+  }
+
+  @Override
   public void stop(boolean reset) {
     verifyApplicationThread();
     player.stop(reset);
@@ -1145,12 +1162,19 @@ public class SimpleExoPlayer extends BasePlayer
     }
     if (this.surface != null && this.surface != surface) {
       // We're replacing a surface. Block to ensure that it's not accessed after the method returns.
+      Long detachSurfaceTimeoutMs = getDetachSurfaceTimeoutMs();
       try {
         for (PlayerMessage message : messages) {
-          message.blockUntilDelivered();
+          message.blockUntilDelivered(detachSurfaceTimeoutMs);
         }
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
+      }catch (TimeoutException e) {
+        player.stop(
+            /* reset= */ false,
+            ExoPlaybackException.createForTimeout(
+                new TimeoutException("Detaching surface timed out."),
+                ExoPlaybackException.TIMEOUT_OPERATION_DETACH_SURFACE));
       }
       // If we created the previous surface, we are responsible for releasing it.
       if (this.ownsSurface) {

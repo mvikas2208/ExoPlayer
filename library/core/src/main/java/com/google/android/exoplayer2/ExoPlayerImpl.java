@@ -72,7 +72,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
   private boolean hasPendingSeek;
   private PlaybackParameters playbackParameters;
   private SeekParameters seekParameters;
-  private @Nullable ExoPlaybackException playbackError;
 
   // Playback information when there is no pending seek/set source operation.
   private PlaybackInfo playbackInfo;
@@ -81,6 +80,10 @@ import java.util.concurrent.CopyOnWriteArraySet;
   private int maskingWindowIndex;
   private int maskingPeriodIndex;
   private long maskingWindowPositionMs;
+  private long detachSurfaceTimeoutMs;
+
+  /** The default timeout for detaching a surface from the player, in milliseconds. */
+  public static final long DEFAULT_DETACH_SURFACE_TIMEOUT_MS = 2_000;
 
   /**
    * Constructs an instance. Must be called from a thread that has an associated {@link Looper}.
@@ -118,6 +121,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
     period = new Timeline.Period();
     playbackParameters = PlaybackParameters.DEFAULT;
     seekParameters = SeekParameters.DEFAULT;
+    detachSurfaceTimeoutMs = DEFAULT_DETACH_SURFACE_TIMEOUT_MS;
     eventHandler =
         new Handler(looper) {
           @Override
@@ -193,13 +197,12 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
   @Override
   public @Nullable ExoPlaybackException getPlaybackError() {
-    return playbackError;
+    return playbackInfo.playbackError;
   }
 
   @Override
   public void retry() {
-    if (mediaSource != null
-        && (playbackError != null || playbackInfo.playbackState == Player.STATE_IDLE)) {
+    if (mediaSource != null && playbackInfo.playbackState == Player.STATE_IDLE) {
       prepare(mediaSource, /* resetPosition= */ false, /* resetState= */ false);
     }
   }
@@ -211,11 +214,13 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
   @Override
   public void prepare(MediaSource mediaSource, boolean resetPosition, boolean resetState) {
-    playbackError = null;
     this.mediaSource = mediaSource;
     PlaybackInfo playbackInfo =
         getResetPlaybackInfo(
-            resetPosition, resetState, /* playbackState= */ Player.STATE_BUFFERING);
+            resetPosition,
+            resetState,
+            /* resetError= */ true,
+            /* playbackState= */ Player.STATE_BUFFERING);
     // Trigger internal prepare first before updating the playback info and notifying external
     // listeners to ensure that new operations issued in the listener notifications reach the
     // player after this prepare. The internal player can't change the playback info immediately
@@ -362,21 +367,45 @@ import java.util.concurrent.CopyOnWriteArraySet;
   }
 
   @Override
+  public void setDetachSurfaceTimeoutMs(long detachSurfaceTimeoutMs) {
+    this.detachSurfaceTimeoutMs = detachSurfaceTimeoutMs;
+  }
+
+  @Override
+  public long getDetachSurfaceTimeoutMs() {
+    return detachSurfaceTimeoutMs;
+  }
+
+  @Override
   public SeekParameters getSeekParameters() {
     return seekParameters;
   }
 
   @Override
   public void stop(boolean reset) {
+    stop(reset, /* error= */ null);
+  }
+
+  /**
+   * Stops the player.
+   *
+   * @param reset Whether the playlist should be cleared and whether the playback position and
+   *     playback error should be reset.
+   * @param error An optional {@link ExoPlaybackException} to set.
+   */
+  public void stop(boolean reset, @Nullable ExoPlaybackException error) {
     if (reset) {
-      playbackError = null;
       mediaSource = null;
     }
     PlaybackInfo playbackInfo =
         getResetPlaybackInfo(
             /* resetPosition= */ reset,
             /* resetState= */ reset,
+            /* resetError= */ reset,
             /* playbackState= */ Player.STATE_IDLE);
+    if (error != null) {
+      playbackInfo = playbackInfo.copyWithPlaybackError(error);
+    }
     // Trigger internal stop first before updating the playback info and notifying external
     // listeners to ensure that new operations issued in the listener notifications reach the
     // player after this stop. The internal player can't change the playback info immediately
@@ -604,13 +633,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
           }
         }
         break;
-      case ExoPlayerImplInternal.MSG_ERROR:
-        ExoPlaybackException playbackError = (ExoPlaybackException) msg.obj;
-        this.playbackError = playbackError;
-        for (Player.EventListener listener : listeners) {
-          listener.onPlayerError(playbackError);
-        }
-        break;
       default:
         throw new IllegalStateException();
     }
@@ -655,7 +677,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
   }
 
   private PlaybackInfo getResetPlaybackInfo(
-      boolean resetPosition, boolean resetState, int playbackState) {
+      boolean resetPosition, boolean resetState, boolean resetError, int playbackState) {
     if (resetPosition) {
       maskingWindowIndex = 0;
       maskingPeriodIndex = 0;
@@ -678,6 +700,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
         startPositionUs,
         contentPositionUs,
         playbackState,
+        resetError ? null : playbackInfo.playbackError,
         /* isLoading= */ false,
         resetState ? TrackGroupArray.EMPTY : playbackInfo.trackGroups,
         resetState ? emptyTrackSelectorResult : playbackInfo.trackSelectorResult,
@@ -739,6 +762,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
     private final @Player.TimelineChangeReason int timelineChangeReason;
     private final boolean seekProcessed;
     private final boolean playWhenReady;
+    private final boolean playbackErrorChanged;
     private final boolean playbackStateOrPlayWhenReadyChanged;
     private final boolean timelineOrManifestChanged;
     private final boolean isLoadingChanged;
@@ -763,6 +787,9 @@ import java.util.concurrent.CopyOnWriteArraySet;
       this.timelineChangeReason = timelineChangeReason;
       this.seekProcessed = seekProcessed;
       this.playWhenReady = playWhenReady;
+      playbackErrorChanged =
+          previousPlaybackInfo.playbackError != playbackInfo.playbackError
+              && playbackInfo.playbackError != null;
       playbackStateOrPlayWhenReadyChanged =
           playWhenReadyChanged || previousPlaybackInfo.playbackState != playbackInfo.playbackState;
       timelineOrManifestChanged =
@@ -790,6 +817,11 @@ import java.util.concurrent.CopyOnWriteArraySet;
         for (Player.EventListener listener : listeners) {
           listener.onTracksChanged(
               playbackInfo.trackGroups, playbackInfo.trackSelectorResult.selections);
+        }
+      }
+      if (playbackErrorChanged) {
+        for (Player.EventListener listener : listeners) {
+          listener.onPlayerError(playbackInfo.playbackError);
         }
       }
       if (isLoadingChanged) {
